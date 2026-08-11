@@ -36,9 +36,39 @@ body, html {
     gap: 10px;
 }
 
+.toolbar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 .branding {
     font-weight: 600;
     font-size: 14px;
+}
+
+.mobile-tabs {
+    display: none;
+    gap: 4px;
+    background: #e5e5e5;
+    padding: 2px;
+    border-radius: 4px;
+}
+
+.tab-btn {
+    padding: 4px 12px;
+    border: none;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background 0.15s ease;
+}
+
+.tab-btn.active {
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
 }
 
 .controls {
@@ -410,4 +440,64 @@ button#print-btn:hover {
     .empty-page {
         display: block !important;
     }
+}
+
+/* Compact Mobile Screen Responsiveness (< 768px) */
+@media screen and (max-width: 768px) {
+    .mobile-tabs {
+        display: flex;
+    }
+    
+    .editor-pane {
+        width: 100%;
+        min-width: 100%;
+        height: 100vh;
+        border-right: none;
+    }
+    
+    .preview-pane {
+        width: 100%;
+        height: 100vh;
+        padding: 10px;
+    }
+    
+    body.show-preview-mobile .editor-pane {
+        display: none !important;
+    }
+    
+    body:not(.show-preview-mobile) .preview-pane {
+        display: none !important;
+    }
+    
+    .controls {
+        gap: 6px;
+        font-size: 11px;
+    }
+
+    .controls input[type="number"] {
+        width: 42px;
+    }
+
+    body.show-preview-mobile .exit-preview-mobile-btn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+}
+
+.exit-preview-mobile-btn {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #000;
+    color: #fff;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    cursor: pointer;
+    z-index: 1000;
 }

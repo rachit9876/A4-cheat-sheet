@@ -665,6 +665,33 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
+    const tabEditorBtn = document.getElementById('tab-editor-btn');
+    const tabPreviewBtn = document.getElementById('tab-preview-btn');
+
+    if (tabEditorBtn && tabPreviewBtn) {
+        tabEditorBtn.addEventListener('click', () => {
+            document.body.classList.remove('show-preview-mobile');
+            tabEditorBtn.classList.add('active');
+            tabPreviewBtn.classList.remove('active');
+        });
+
+        tabPreviewBtn.addEventListener('click', () => {
+            document.body.classList.add('show-preview-mobile');
+            tabPreviewBtn.classList.add('active');
+            tabEditorBtn.classList.remove('active');
+            autoFitZoom();
+        });
+    }
+
+    const exitPreviewMobileBtn = document.getElementById('exit-preview-mobile-btn');
+    if (exitPreviewMobileBtn) {
+        exitPreviewMobileBtn.addEventListener('click', () => {
+            document.body.classList.remove('show-preview-mobile');
+            if (tabEditorBtn) tabEditorBtn.classList.add('active');
+            if (tabPreviewBtn) tabPreviewBtn.classList.remove('active');
+        });
+    }
+
     printBtn.addEventListener('click', () => {
         window.print();
     });
@@ -686,6 +713,14 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
             console.warn('Could not fetch sample.md:', err);
         }
+
+        // On mobile devices (< 768px), default to Preview mode first
+        if (window.innerWidth <= 768) {
+            document.body.classList.add('show-preview-mobile');
+            if (tabPreviewBtn) tabPreviewBtn.classList.add('active');
+            if (tabEditorBtn) tabEditorBtn.classList.remove('active');
+        }
+
         initMeasurements();
         autoFitZoom();
         await renderMarkdown();

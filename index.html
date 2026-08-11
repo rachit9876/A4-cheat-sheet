@@ -20,7 +20,13 @@
         <!-- Sidebar / Editor -->
         <div class="editor-pane">
             <div class="toolbar">
-                <div class="branding">2-in-1 A4 Markdown PDF</div>
+                <div class="toolbar-header">
+                    <div class="branding">2-in-1 A4 Markdown PDF</div>
+                    <div class="mobile-tabs">
+                        <button id="tab-editor-btn" class="tab-btn active">Editor</button>
+                        <button id="tab-preview-btn" class="tab-btn">Preview</button>
+                    </div>
+                </div>
                 <div class="controls">
                     <label>
                         Font Size:
@@ -55,6 +61,7 @@
         <!-- Preview -->
         <div class="preview-pane">
             <div id="preview-container"></div>
+            <button id="exit-preview-mobile-btn" class="exit-preview-mobile-btn">← Back to Editor</button>
         </div>
     </div>
 
