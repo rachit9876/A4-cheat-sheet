@@ -158,6 +158,11 @@ button#print-btn:hover {
     transform-origin: top center;
 }
 
+.a4-sheet.portrait {
+    width: 210mm;
+    height: 297mm;
+}
+
 /* Logical Portrait Page */
 .logical-page {
     flex: 1;
@@ -223,6 +228,81 @@ button#print-btn:hover {
     page-break-inside: avoid;
     break-inside: avoid;
 }
+
+.page-content mark {
+    background-color: #fff5b1;
+    padding: 0 2px;
+    border-radius: 2px;
+}
+
+.page-content sub, .page-content sup {
+    font-size: 0.75em;
+    line-height: 0;
+    position: relative;
+    vertical-align: baseline;
+}
+.page-content sup { top: -0.4em; }
+.page-content sub { bottom: -0.2em; }
+
+.page-content dl { margin: 2px 0; }
+.page-content dt { font-weight: bold; margin-top: 2px; }
+.page-content dd { margin-left: 12px; margin-bottom: 2px; }
+
+.page-content details {
+    border: 1px solid #ddd;
+    padding: 4px;
+    border-radius: 3px;
+    margin: 2px 0;
+}
+.page-content summary {
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.page-content input[type="checkbox"] {
+    margin: 0 4px 0 0;
+    vertical-align: middle;
+}
+
+/* GitHub Alerts / Callouts */
+.markdown-alert {
+    padding: 4px 8px;
+    margin: 4px 0;
+    border-left: 3px solid #0969da;
+    background-color: #f6f8fa;
+    border-radius: 0 3px 3px 0;
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+.markdown-alert-title {
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 2px;
+}
+.markdown-alert-note { border-left-color: #0969da; background-color: #ddf4ff; }
+.markdown-alert-note .markdown-alert-title { color: #0969da; }
+.markdown-alert-tip { border-left-color: #1a7f37; background-color: #dafbe1; }
+.markdown-alert-tip .markdown-alert-title { color: #1a7f37; }
+.markdown-alert-important { border-left-color: #8250df; background-color: #f3e8ff; }
+.markdown-alert-important .markdown-alert-title { color: #8250df; }
+.markdown-alert-warning { border-left-color: #9a6700; background-color: #fff8c5; }
+.markdown-alert-warning .markdown-alert-title { color: #9a6700; }
+.markdown-alert-caution { border-left-color: #cf222e; background-color: #ffebe9; }
+.markdown-alert-caution .markdown-alert-title { color: #cf222e; }
+
+/* Footnotes */
+.footnotes {
+    margin-top: 10px;
+    border-top: 1px solid #ddd;
+    font-size: 0.85em;
+    color: #555;
+}
+
+/* KaTeX Math & Mermaid */
+.katex-display { margin: 4px 0 !important; }
+.mermaid { text-align: center; margin: 4px 0; }
 .page-content th, .page-content td {
     border: 1px solid #ccc;
     padding: 2px 4px;
@@ -307,6 +387,11 @@ button#print-btn:hover {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
         box-sizing: border-box !important;
+    }
+
+    .a4-sheet.portrait {
+        width: 210mm !important;
+        height: 297mm !important;
     }
 
     .a4-sheet:last-child,

@@ -14,14 +14,39 @@ document.addEventListener('DOMContentLoaded', () => {
         return colsInput ? parseInt(colsInput.value, 10) || 2 : 2;
     }
 
+    function updatePageOrientationStyle(cols) {
+        let printStyleTag = document.getElementById('dynamic-print-style');
+        if (!printStyleTag) {
+            printStyleTag = document.createElement('style');
+            printStyleTag.id = 'dynamic-print-style';
+            document.head.appendChild(printStyleTag);
+        }
+        
+        if (cols === 1) {
+            document.body.classList.add('portrait-orientation');
+            printStyleTag.textContent = `
+                @media print {
+                    @page { size: A4 portrait; margin: 0; }
+                }
+            `;
+        } else {
+            document.body.classList.remove('portrait-orientation');
+            printStyleTag.textContent = `
+                @media print {
+                    @page { size: A4 landscape; margin: 0; }
+                }
+            `;
+        }
+    }
+
     function initMeasurements() {
+        const cols = getColumnCount();
         // Create a temporary dummy sheet to measure dimensions for current column count
         const dummySheet = document.createElement('div');
-        dummySheet.className = 'a4-sheet';
+        dummySheet.className = 'a4-sheet' + (cols === 1 ? ' portrait' : '');
         dummySheet.style.position = 'absolute';
         dummySheet.style.visibility = 'hidden';
         
-        const cols = getColumnCount();
         for (let c = 0; c < cols; c++) {
             const dummyPage = document.createElement('div');
             dummyPage.className = 'logical-page';
@@ -205,9 +230,173 @@ document.addEventListener('DOMContentLoaded', () => {
         return content.clientHeight;
     }
 
-    function renderMarkdown() {
+    function preprocessMarkdown(rawMd) {
+        if (!rawMd) return '';
+        let md = rawMd;
+
+        // 1. Convert KaTeX Math Blocks $$ ... $$
+        md = md.replace(/\$\$([\s\S]+?)\$\$/g, (match, mathContent) => {
+            if (window.katex) {
+                try {
+                    return katex.renderToString(mathContent.trim(), { displayMode: true, throwOnError: false });
+                } catch (e) { console.error(e); }
+            }
+            return match;
+        });
+
+        // 2. Convert KaTeX Inline Math $ ... $
+        md = md.replace(/(^|[^\\])\$([^\$\n]+?)\$/g, (match, prefix, mathContent) => {
+            if (window.katex) {
+                try {
+                    return prefix + katex.renderToString(mathContent.trim(), { displayMode: false, throwOnError: false });
+                } catch (e) { console.error(e); }
+            }
+            return match;
+        });
+
+        // 3. Highlight ==text== -> <mark>text</mark>
+        md = md.replace(/==([^=\n]+)==/g, '<mark>$1</mark>');
+
+        // 4. Subscript ~text~ -> <sub>text</sub>
+        md = md.replace(/~([^~\s\n]+?)~/g, '<sub>$1</sub>');
+
+        // 5. Superscript ^text^ -> <sup>text</sup>
+        md = md.replace(/\^([^\^\s\n]+?)\^/g, '<sup>$1</sup>');
+
+        // 6. Emojis
+        const emojiMap = {
+            ':smile:': '😄', ':rocket:': '🚀', ':heart:': '❤️', ':+1:': '👍',
+            ':tada:': '🎉', ':warning:': '⚠️', ':check:': '✅', ':x:': '❌',
+            ':star:': '⭐', ':fire:': '🔥', ':bulb:': '💡', ':100:': '💯'
+        };
+        for (const [key, val] of Object.entries(emojiMap)) {
+            md = md.replaceAll(key, val);
+        }
+
+        // 7. Footnotes extraction
+        const footnotes = [];
+        md = md.replace(/^\[\^([^\]]+)\]:\s*(.+)$/gm, (match, id, text) => {
+            footnotes.push({ id, text });
+            return '';
+        });
+
+        // Footnote references [^1]
+        md = md.replace(/\[\^([^\]]+)\]/g, (match, id) => {
+            return `<sup><a href="#fn-${id}" id="fnref-${id}">[${id}]</a></sup>`;
+        });
+
+        // Append Footnotes section if footnotes exist
+        if (footnotes.length > 0) {
+            md += '\n\n---\n<section class="footnotes"><ol>';
+            footnotes.forEach(fn => {
+                md += `<li id="fn-${fn.id}">${fn.text} <a href="#fnref-${fn.id}">↩</a></li>`;
+            });
+            md += '</ol></section>';
+        }
+
+        // 8. Abbreviations (*[ABBR]: Full Name)
+        const abbrs = {};
+        md = md.replace(/^\*\[([^\]]+)\]:\s*(.+)$/gm, (match, abbr, title) => {
+            abbrs[abbr] = title;
+            return '';
+        });
+
+        for (const [abbr, title] of Object.entries(abbrs)) {
+            const regex = new RegExp(`\\b${abbr}\\b`, 'g');
+            md = md.replace(regex, `<abbr title="${title}">${abbr}</abbr>`);
+        }
+
+        return md;
+    }
+
+    async function postProcessDOM(parsedContent) {
+        // 1. GitHub Alerts (> [!NOTE], > [!TIP], > [!IMPORTANT], > [!WARNING], > [!CAUTION])
+        const blockquotes = Array.from(parsedContent.querySelectorAll('blockquote'));
+        blockquotes.forEach(bq => {
+            const text = bq.textContent.trim();
+            const match = text.match(/^\[\!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/i);
+            if (match) {
+                const type = match[1].toUpperCase();
+                const lowerType = type.toLowerCase();
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `markdown-alert markdown-alert-${lowerType}`;
+                
+                let inner = bq.innerHTML.replace(/\[\!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/i, '').trim();
+                if (inner.startsWith('<p>') && inner.endsWith('</p>')) {
+                    inner = inner.substring(3, inner.length - 4).trim();
+                }
+                
+                alertDiv.innerHTML = `<div class="markdown-alert-title">${type}</div><div class="markdown-alert-body">${inner}</div>`;
+                bq.parentNode.replaceChild(alertDiv, bq);
+            }
+        });
+
+        // 2. Definition Lists (: Definition transform)
+        const paragraphs = Array.from(parsedContent.querySelectorAll('p'));
+        paragraphs.forEach(p => {
+            const text = p.textContent.trim();
+            if (text.startsWith(': ')) {
+                const prev = p.previousElementSibling;
+                if (prev) {
+                    const dl = document.createElement('dl');
+                    const dt = document.createElement('dt');
+                    dt.innerHTML = prev.innerHTML;
+                    const dd = document.createElement('dd');
+                    dd.innerHTML = p.innerHTML.substring(2).trim();
+                    dl.appendChild(dt);
+                    dl.appendChild(dd);
+                    
+                    if (prev.parentNode) {
+                        prev.parentNode.insertBefore(dl, prev);
+                        prev.remove();
+                    }
+                    p.remove();
+                }
+            }
+        });
+
+        // 3. Highlight.js Syntax Highlighting
+        if (window.hljs) {
+            parsedContent.querySelectorAll('pre code').forEach(block => {
+                if (!block.classList.contains('language-mermaid')) {
+                    try { hljs.highlightElement(block); } catch (e) {}
+                }
+            });
+        }
+
+        // 4. Async Mermaid Diagrams Rendering
+        if (window.mermaid) {
+            try {
+                mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
+            } catch (e) {}
+            
+            const mermaidBlocks = Array.from(parsedContent.querySelectorAll('pre code.language-mermaid'));
+            for (let i = 0; i < mermaidBlocks.length; i++) {
+                const block = mermaidBlocks[i];
+                const pre = block.parentElement;
+                const code = block.textContent.trim();
+                const id = 'mermaid-svg-' + Date.now() + '-' + i;
+                try {
+                    const { svg } = await mermaid.render(id, code);
+                    const container = document.createElement('div');
+                    container.className = 'mermaid';
+                    container.innerHTML = svg;
+                    if (pre && pre.parentNode) {
+                        pre.parentNode.replaceChild(container, pre);
+                    }
+                } catch (err) {
+                    console.error('Mermaid render error:', err);
+                    const dummy = document.getElementById(id);
+                    if (dummy) dummy.remove();
+                }
+            }
+        }
+    }
+
+    async function renderMarkdown() {
         const rawMd = mdInput.value;
-        const html = marked.parse(rawMd);
+        const preprocessedMd = preprocessMarkdown(rawMd);
+        const html = marked.parse(preprocessedMd);
         
         // Apply font size CSS variable to root for consistency
         const fontSize = fontSizeInput.value + 'px';
@@ -215,6 +404,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         measuringContainer.innerHTML = `<div class="page-content">${html}</div>`;
         const parsedContent = measuringContainer.querySelector('.page-content');
+
+        // Apply DOM Post-Processors (Alerts, Definitions, Highlight.js, Mermaid SVG)
+        await postProcessDOM(parsedContent);
         
         const rawNodes = Array.from(parsedContent.childNodes);
         const nodes = [];
@@ -337,9 +529,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const showPageNums = pageNumToggle.checked;
         const cols = getColumnCount();
         
+        updatePageOrientationStyle(cols);
+        
         for (let i = 0; i < logicalPages.length; i += cols) {
             const sheet = document.createElement('div');
-            sheet.className = 'a4-sheet';
+            sheet.className = 'a4-sheet' + (cols === 1 ? ' portrait' : '');
             
             for (let c = 0; c < cols; c++) {
                 if (i + c < logicalPages.length) {
@@ -424,8 +618,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!previewPane) return;
         // Available width in px (subtract 40px padding)
         const availableWidth = previewPane.clientWidth - 40;
-        // A4 Landscape width is 297mm (~1122.5px at 96 DPI)
-        const sheetWidthPx = 1122.5;
+        const cols = getColumnCount();
+        // A4 Landscape width is 297mm (~1122.5px); A4 Portrait width is 210mm (~793.7px)
+        const sheetWidthPx = cols === 1 ? 793.7 : 1122.5;
         
         if (availableWidth > 0) {
             let fitRatio = availableWidth / sheetWidthPx;
@@ -481,10 +676,23 @@ document.addEventListener('DOMContentLoaded', () => {
         renderMarkdown();
     }, 300));
 
+    async function loadDefaultSample() {
+        try {
+            const response = await fetch('sample.md');
+            if (response.ok) {
+                const text = await response.text();
+                mdInput.value = text;
+            }
+        } catch (err) {
+            console.warn('Could not fetch sample.md:', err);
+        }
+        initMeasurements();
+        autoFitZoom();
+        await renderMarkdown();
+    }
+
     // Initialize
-    initMeasurements();
-    autoFitZoom();
-    renderMarkdown();
+    loadDefaultSample();
 
     const previewPane = document.querySelector('.preview-pane');
     if (previewPane) {
