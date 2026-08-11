@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2-in-1 A4 Markdown PDF</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar / Editor -->
+        <div class="editor-pane">
+            <div class="toolbar">
+                <div class="branding">2-in-1 A4 Markdown PDF</div>
+                <div class="controls">
+                    <label>
+                        Font Size:
+                        <input type="number" id="font-size-input" value="10" min="6" max="16" step="0.5"> px
+                    </label>
+                    <label>
+                        Columns:
+                        <select id="cols-input">
+                            <option value="1">1 Column (1-in-1)</option>
+                            <option value="2" selected>2 Columns (2-in-1)</option>
+                            <option value="3">3 Columns (3-in-1)</option>
+                        </select>
+                    </label>
+                    <label>
+                        <input type="checkbox" id="page-num-toggle" checked> Page Numbers
+                    </label>
+                    <label>
+                        <input type="checkbox" id="neat-layout-toggle" checked> Neat Layout (Avoid Orphan Headings)
+                    </label>
+                    <div class="zoom-controls">
+                        <button id="zoom-out-btn" title="Zoom Out">-</button>
+                        <span id="zoom-level-text">Fit</span>
+                        <button id="zoom-in-btn" title="Zoom In">+</button>
+                        <button id="zoom-fit-btn" title="Fit Whole Page">Fit Page</button>
+                    </div>
+                    <button id="print-btn">Print / Save PDF</button>
+                </div>
+            </div>
+            <textarea id="markdown-input" placeholder="Enter your Markdown here..."># Sample Heading
+Write some markdown here. It will be paginated into 2-in-1 A4 sheets automatically!
+
+- List item 1
+- List item 2
+
+```javascript
+console.log("Code blocks are supported!");
+```
+</textarea>
+        </div>
+
+        <!-- Preview -->
+        <div class="preview-pane">
+            <div id="preview-container"></div>
+        </div>
+    </div>
+
+    <!-- Hidden measuring container -->
+    <div id="measuring-container" class="measuring-container"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
